@@ -4,90 +4,141 @@ This file provides guidance for AI assistants (Claude Code and others) working i
 
 ## Project Overview
 
-**Alter** is a project by [@garythehuman](https://github.com/garythehuman), currently in its earliest stage. As of the last update to this file, the repository contains only a license and a minimal README — no source code, build system, or dependencies yet.
+**Alter** is a CLI tool that automates information gathering about a project's tech stack — detecting programming languages, frameworks, and databases by scanning directories and config files.
 
-**License:** GNU General Public License v3.0 (see `LICENSE`). All contributions must be compatible with GPL v3.
+**License:** GNU General Public License v3.0. All contributions must be GPL v3 compatible.
 
-## Repository State
+**Entry point:** `alter scan [path]` — scans a directory and outputs a report.
 
-The project is greenfield. When source code, configuration, or tooling is added, this file should be updated to reflect:
+## Tech Stack
 
-- The project's purpose and tech stack
-- Directory structure and key files
-- Build, test, and lint commands
-- Environment setup instructions
-- Code conventions and style rules
+| Layer | Tool |
+|---|---|
+| Language | Python 3.11+ |
+| CLI framework | Typer |
+| Terminal output | Rich |
+| HTTP client | httpx |
+| Config parsing | PyYAML, tomllib (stdlib 3.11+) |
+| Testing | pytest |
+| Packaging | pyproject.toml + setuptools |
 
-## Development Workflow
-
-### Branch Strategy
-
-- `main` — stable, production-ready code
-- `claude/<description>` — branches created by AI assistants for automated tasks
-- Feature branches should be short-lived and merged via pull request
-
-### Git Conventions
-
-- Write clear, descriptive commit messages in the imperative mood (e.g., "Add user authentication module")
-- Reference issues or context in commit bodies where relevant
-- Do not force-push to `main`
-- Commit signing is enabled on this repository (SSH key signing); do not bypass it
-
-### Pull Requests
-
-- Do not open a pull request unless explicitly asked by the project owner
-- PR titles should be concise (under 70 characters)
-- Include a summary and a brief test plan in the PR body
-
-## AI Assistant Guidelines
-
-### General Approach
-
-- **Read before editing.** Always read a file before modifying it.
-- **Minimal footprint.** Only create or change files directly required by the task.
-- **No speculative additions.** Do not add error handling, abstractions, comments, or features beyond what was asked.
-- **GPL compliance.** Any code added must be compatible with GPL v3. Avoid copying code from incompatibly licensed sources.
-
-### When the Codebase Grows
-
-Update this file whenever significant structural changes occur:
-
-- A new tech stack or language is adopted
-- A build system, test runner, or linter is configured
-- Environment variables or secrets are introduced
-- A database, API layer, or significant new module is added
-- New conventions are established by the project owner
-
-### Commands to Run (update when applicable)
-
-Once a build system is in place, document the essential commands here. For example:
-
-```bash
-# Install dependencies
-<command>
-
-# Run tests
-<command>
-
-# Lint / format
-<command>
-
-# Build for production
-<command>
-
-# Start development server
-<command>
-```
-
-Replace the placeholders above with actual commands once the project is initialized.
-
-## File Structure (current)
+## Directory Structure
 
 ```
 Alter/
-├── LICENSE        # GNU General Public License v3.0
-├── README.md      # Project title only — to be expanded
-└── CLAUDE.md      # This file
+├── alter/                   # Main package
+│   ├── __init__.py          # Version string
+│   ├── cli.py               # Typer app and entry point
+│   ├── detectors/           # Detection modules
+│   │   ├── languages.py     # Detects languages by file extension
+│   │   ├── frameworks.py    # Detects frameworks from config files
+│   │   └── databases.py     # Detects databases from env/config/deps
+│   └── output/
+│       └── reporter.py      # Renders results (table, json, markdown)
+├── tests/
+│   ├── test_languages.py
+│   ├── test_frameworks.py
+│   └── test_databases.py
+├── pyproject.toml           # Project config, dependencies, scripts
+├── CLAUDE.md                # This file
+├── README.md
+└── LICENSE                  # GNU GPL v3
 ```
 
-Update this section as files and directories are added.
+## Development Setup
+
+```bash
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+
+# Install package with dev dependencies
+pip install -e ".[dev]"
+
+# Run the CLI
+alter scan .
+alter scan /path/to/project --output json
+alter scan /path/to/project --output markdown
+```
+
+## Commands
+
+```bash
+# Run all tests
+pytest
+
+# Run tests with coverage
+pytest --cov=alter
+
+# Run a specific test file
+pytest tests/test_languages.py
+
+# Install in editable mode (re-run after changing pyproject.toml)
+pip install -e ".[dev]"
+```
+
+## Architecture
+
+### Detection Flow
+
+1. User runs `alter scan <path>`
+2. `cli.py` calls each detector: `languages.detect()`, `frameworks.detect()`, `databases.detect()`
+3. Each detector returns a list of dicts (see formats below)
+4. `Reporter.render()` formats and prints the combined results
+
+### Detector Return Formats
+
+```python
+# languages.detect(path) -> list[dict]
+[{"language": "Python", "files": 12}, ...]
+
+# frameworks.detect(path) -> list[dict]
+[{"framework": "Django", "source": "requirements.txt"}, ...]
+
+# databases.detect(path) -> list[dict]
+[{"database": "PostgreSQL", "source": ".env"}, ...]
+```
+
+### Adding a New Detector
+
+- Add new file under `alter/detectors/`
+- Export it from `alter/detectors/__init__.py`
+- Add the `detect(path: str) -> list[dict]` function
+- Wire it into `alter/cli.py`
+- Add tests under `tests/`
+
+### Adding a New Framework/Database
+
+- For JS frameworks: extend `JS_FRAMEWORK_MAP` in `detectors/frameworks.py`
+- For Python packages: extend `PYTHON_FRAMEWORK_MAP` in `detectors/frameworks.py`
+- For databases: extend `DEPENDENCY_PATTERNS` or `URL_SCHEME_MAP` in `detectors/databases.py`
+
+### Adding a New Output Format
+
+- Add the format name to `VALID_FORMATS` in `alter/output/reporter.py`
+- Add a `_render_<format>()` method to `Reporter`
+- Add a branch in `Reporter.render()`
+
+## Code Conventions
+
+- **Type hints everywhere** — all function signatures must be fully typed
+- **Docstrings on public functions** — Args and Returns sections, plain English
+- **No global state** — detectors are stateless functions; Reporter is a small class
+- **Fail silently on bad files** — detectors catch exceptions and return empty results rather than crashing
+- **One responsibility per file** — each detector handles one detection domain only
+
+## Git Conventions
+
+- `main` — stable branch; do not push directly
+- `claude/<description>` — AI-generated feature branches
+- Commit messages: imperative mood, concise (e.g. `Add Ruby framework detection`)
+- Do not force-push to `main`
+- Commit signing is enabled (SSH); do not bypass with `--no-verify`
+
+## AI Assistant Guidelines
+
+- **Read before editing** — always read a file before modifying it
+- **Minimal footprint** — only create or change what the task requires
+- **No speculative additions** — do not add extra error handling, abstractions, or features beyond what was asked
+- **GPL compliance** — do not copy code from incompatibly licensed sources
+- **Update this file** when significant structural changes are made (new modules, new commands, new dependencies)
