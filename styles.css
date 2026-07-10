@@ -31,10 +31,11 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
-  padding: 1rem;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
 }
 
 .app {
@@ -44,6 +45,12 @@ body {
   flex-direction: column;
   gap: 1.25rem;
   padding-top: 2rem;
+}
+
+@media (max-width: 420px) {
+  .app {
+    padding-top: 0.75rem;
+  }
 }
 
 .header h1 {
@@ -104,12 +111,14 @@ body {
 input,
 select {
   font: inherit;
+  font-size: max(1rem, 16px); /* 16px floor prevents iOS zoom-on-focus */
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 0.6rem;
-  padding: 0.6rem 0.7rem;
+  padding: 0.7rem 0.75rem;
   width: 100%;
+  min-height: 2.9rem;
 }
 
 input:focus,
@@ -125,14 +134,16 @@ select:focus {
 }
 
 .swap-btn {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   line-height: 1;
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 0.6rem;
-  padding: 0.55rem 0.65rem;
+  min-width: 2.9rem;
+  min-height: 2.9rem;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .swap-btn:hover {
