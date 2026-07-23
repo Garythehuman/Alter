@@ -4,19 +4,16 @@ This file provides guidance for AI assistants (Claude Code and others) working i
 
 ## Project Overview
 
-**Alter** is a project by [@garythehuman](https://github.com/garythehuman), currently in its earliest stage. As of the last update to this file, the repository contains only a license and a minimal README — no source code, build system, or dependencies yet.
+**Alter** is an offline-first currency exchange web app by [@garythehuman](https://github.com/garythehuman). It is a static Progressive Web App (PWA) with no build system and no dependencies: plain HTML, CSS, and JavaScript.
 
 **License:** GNU General Public License v3.0 (see `LICENSE`). All contributions must be compatible with GPL v3.
 
-## Repository State
+## Architecture
 
-The project is greenfield. When source code, configuration, or tooling is added, this file should be updated to reflect:
-
-- The project's purpose and tech stack
-- Directory structure and key files
-- Build, test, and lint commands
-- Environment setup instructions
-- Code conventions and style rules
+- `index.html` / `styles.css` — app shell: single-page converter UI, light/dark theme via `prefers-color-scheme`
+- `app.js` — converter logic; fetches rates from `https://open.er-api.com/v6/latest/USD`, persists them in `localStorage` (key `alter-rates-v1`), refreshes in the background when stale (>1 h) or when the connection returns, and falls back to a bundled rate snapshot if the app has never been online
+- `sw.js` — service worker; cache-first for the app shell (bump `CACHE_NAME` when shell files change), API requests bypass the cache
+- `manifest.json` / `icon.svg` — PWA installability
 
 ## Development Workflow
 
@@ -58,36 +55,31 @@ Update this file whenever significant structural changes occur:
 - A database, API layer, or significant new module is added
 - New conventions are established by the project owner
 
-### Commands to Run (update when applicable)
+### Commands to Run
 
-Once a build system is in place, document the essential commands here. For example:
+There is no build, test, or lint tooling. To run the app locally (service workers require http/https):
 
 ```bash
-# Install dependencies
-<command>
-
-# Run tests
-<command>
-
-# Lint / format
-<command>
-
-# Build for production
-<command>
-
 # Start development server
-<command>
+python3 -m http.server 8000
+# then open http://localhost:8000
 ```
 
-Replace the placeholders above with actual commands once the project is initialized.
+Deployment is copying the files to any static host.
 
 ## File Structure (current)
 
 ```
 Alter/
 ├── LICENSE        # GNU General Public License v3.0
-├── README.md      # Project title only — to be expanded
-└── CLAUDE.md      # This file
+├── README.md      # Project description and usage
+├── CLAUDE.md      # This file
+├── index.html     # App shell / converter UI
+├── styles.css     # Styling (light + dark)
+├── app.js         # Rates fetching, storage, conversion logic
+├── sw.js          # Service worker (offline cache)
+├── manifest.json  # PWA manifest
+└── icon.svg       # App icon
 ```
 
 Update this section as files and directories are added.
